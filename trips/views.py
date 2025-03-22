@@ -1,9 +1,10 @@
 from rest_framework import generics
 from .models import Trip
-from serializers import TripSerializer
+from .serializers import TripSerializer
 import requests
 from django.http import JsonResponse
 from datetime import datetime, timedelta
+from decouple import config
 
 
 class TripCreateView(generics.CreateAPIView):
@@ -18,8 +19,8 @@ def calculate_route(request):
         trip = Trip.objects.get(id=trip_id)
         
         # Get route data from openrouteservice
-        api_key = ""
-        url = "https://api.openrouteservice.org/v2/directions/driving-car"
+        api_key = config('OPENROUTESERVICE_API_KEY')
+        url = config('OPENROUTESERVICE_URL')
         params = {
             'api_key': api_key,
             'start': trip.current_location,

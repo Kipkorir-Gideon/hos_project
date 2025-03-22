@@ -85,3 +85,14 @@ def generate_logs_and_stops(trip, distance, duration):
     logs.append(generate_log(current_time, hours_driven, stops))
     
     return logs, stops
+
+
+def generate_log(start_time, driving_hours, stops):
+    # Simplified log generation
+    return {
+        'date': start_time.strftime('%Y-%m-%d'),
+        'driving_hours': driving_hours,
+        'on_duty_hours': driving_hours + sum(s['duration'] for s in stops if s['type'] != 'rest'),
+        'off_duty_hours': 10 if any(s['type'] == 'rest' for s in stops) else 0,
+        'stops': stops
+    }

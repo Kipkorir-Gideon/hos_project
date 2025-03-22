@@ -16,7 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from trips.views import TripCreateView, calculate_route
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/trips/', TripCreateView.as_view(), name='trip-create'),
+    path('api/calculate_route/', calculate_route, name='calculate-route'),
 ]

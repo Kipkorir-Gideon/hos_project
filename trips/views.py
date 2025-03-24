@@ -5,6 +5,8 @@ import requests
 from django.http import JsonResponse
 from datetime import datetime, timedelta
 from decouple import config
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 
 class TripCreateView(generics.CreateAPIView):
@@ -12,38 +14,53 @@ class TripCreateView(generics.CreateAPIView):
     serializer_class = TripSerializer
     
 
-
+@csrf_exempt
 def calculate_route(request):
-    if request.method =='POST':
-        trip_id = request.POST.get('trip_id')
-        trip = Trip.objects.get(id=trip_id)
+    
+    if request.method == 'POST':
+        # Parse JSON body instead of using request.POST
+        try:
+            data = json.loads(request.body)
+            trip_id = data.get('trip_id')
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
         
-        # Get route data from openrouteservice
+        if not trip_id:
+            return JsonResponse({"error": "trip_id is required"}, status=400)
+
+        try:
+            trip = Trip.objects.get(id=trip_id)
+        except Trip.DoesNotExist:
+            return JsonResponse({"error": "Trip not found"}, status=404)
+
         api_key = config('OPENROUTESERVICE_API_KEY')
         url = config('OPENROUTESERVICE_URL')
+
         params = {
-            'api_key': api_key,
-            'start': trip.current_location,
-            'end': trip.dropoff_location,
-            'waypoints': f'{trip.pickup_location}'
+            "api_key": api_key,
+            "start": trip.current_location,
+            "end": trip.dropoff_location,
+            "waypoints": f"{trip.pickup_location}"
         }
         response = requests.get(url, params=params)
+
+        if response.status_code != 200:
+            return JsonResponse({"error": "Failed to fetch route data", "details": response.text}, status=502)
+
         route_data = response.json()
-        
-        # Extract distance (in meters) and duration (in seconds) from route data
-        distance = route_data['features'][0]['properties']['summary']['distance'] / 1609.34 # Convert meters to miles
-        duration = route_data['features'][0]['properties']['summary']['duration'] / 3600 # Convert hours
-        
-        # Calculate stops and logs
+        distance = route_data['features'][0]['properties']['summary']['distance'] / 1609.34
+        duration = route_data['features'][0]['properties']['summary']['duration'] / 3600
         logs, stops = generate_logs_and_stops(trip, distance, duration)
-        
+
         return JsonResponse({
-            'route': route_data['features'][0]['geometry']['coordinates'],
-            'distance': distance,
-            'duration': duration,
-            'stops': stops,
-            'logs': logs
+            "route": route_data['features'][0]['geometry']['coordinates'],
+            "distance": distance,
+            "duration": duration,
+            "stops": stops,
+            "logs": logs
         })
+    else:
+        return JsonResponse({"error": "Method not allowed. Use POST."}, status=405)
         
         
 def generate_logs_and_stops(trip, distance, duration):

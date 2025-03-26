@@ -1,4 +1,3 @@
-# models.py
 from django.db import models
 
 class Trip(models.Model):
@@ -14,8 +13,8 @@ class Trip(models.Model):
 class DutyStatus(models.Model):
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='duty_statuses')
     date = models.DateField()
-    start_time = models.CharField(max_length=5)  # Format: HH:MM
-    end_time = models.CharField(max_length=5)    # Format: HH:MM
+    start_time = models.CharField(max_length=5)
+    end_time = models.CharField(max_length=5)
     status = models.CharField(max_length=50)
     remarks = models.TextField(blank=True)
 

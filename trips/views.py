@@ -1,4 +1,3 @@
-# views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -55,7 +54,7 @@ def get_route(start, waypoints, end):
         raise Exception(f"Route API failed: {response.text}")
     route_data = response.json()
     route_coords = route_data['features'][0]['geometry']['coordinates']
-    return [[coord[1], coord[0]] for coord in route_coords]  # [lat, lon]
+    return [[coord[1], coord[0]] for coord in route_coords]
 
 def calculate_distance_along_route(route_coords, target_distance):
     """Interpolate a point along the route at the target distance (in miles)."""
@@ -63,7 +62,7 @@ def calculate_distance_along_route(route_coords, target_distance):
     for i in range(len(route_coords) - 1):
         point1 = route_coords[i]
         point2 = route_coords[i + 1]
-        R = 3958.8  # Earth's radius in miles
+        R = 3958.8
         lat1, lon1 = radians(point1[0]), radians(point1[1])
         lat2, lon2 = radians(point2[0]), radians(point2[1])
         dlat = lat2 - lat1
@@ -168,7 +167,7 @@ class PlanTripView(APIView):
 
         # Pickup
         start_time = end_time
-        end_time, days_added = add_time(start_time, 1)  # 1 hour for pickup
+        end_time, days_added = add_time(start_time, 1)
         day_offset += days_added
         current_date = start_date + timedelta(days=day_offset)
         duty_statuses.append({
@@ -181,7 +180,7 @@ class PlanTripView(APIView):
 
         # Mandatory 30-minute break
         start_time = end_time
-        end_time, days_added = add_time(start_time, 0.5)  # 30 minutes
+        end_time, days_added = add_time(start_time, 0.5)
         day_offset += days_added
         current_date = start_date + timedelta(days=day_offset)
         duty_statuses.append({
@@ -202,19 +201,43 @@ class PlanTripView(APIView):
             distance_covered += leg_distance
             remaining_distance -= leg_distance
 
-            end_time, days_added = add_time(start_time, driving_time)
-            day_offset += days_added
-            current_date = start_date + timedelta(days=day_offset)
-            duty_statuses.append({
-                "date": str(current_date),
-                "start": start_time,
-                "end": end_time,
-                "status": "Driving",
-                "remarks": f"Driving towards {dropoff_location}",
-            })
+            # Split driving time across days if it crosses midnight
+            current_time = start_time
+            remaining_driving_time = driving_time
+            while remaining_driving_time > 0:
+                current_minutes = int(current_time.split(":")[0]) * 60 + int(current_time.split(":")[1])
+                minutes_to_midnight = (24 * 60) - current_minutes
+                hours_to_midnight = minutes_to_midnight / 60.0
+
+                if remaining_driving_time <= hours_to_midnight:
+                    end_time, days_added = add_time(current_time, remaining_driving_time)
+                    day_offset += days_added
+                    current_date = start_date + timedelta(days=day_offset)
+                    duty_statuses.append({
+                        "date": str(current_date),
+                        "start": current_time,
+                        "end": end_time,
+                        "status": "Driving",
+                        "remarks": f"Driving towards {dropoff_location}",
+                    })
+                    remaining_driving_time = 0
+                else:
+                    end_time = "24:00"
+                    duty_statuses.append({
+                        "date": str(current_date),
+                        "start": current_time,
+                        "end": end_time,
+                        "status": "Driving",
+                        "remarks": f"Driving towards {dropoff_location}",
+                    })
+                    remaining_driving_time -= hours_to_midnight
+                    current_time = "00:00"
+                    day_offset += 1
+                    current_date = start_date + timedelta(days=day_offset)
+
+            start_time = end_time
 
             if i < num_fueling_stops:
-                start_time = end_time
                 end_time, days_added = add_time(start_time, 0.5)  # 30 minutes for fueling stop
                 day_offset += days_added
                 current_date = start_date + timedelta(days=day_offset)
@@ -240,7 +263,7 @@ class PlanTripView(APIView):
                 start_time = end_time
 
         # Dropoff
-        end_time, days_added = add_time(start_time, 1)  # 1 hour for dropoff
+        end_time, days_added = add_time(start_time, 1)
         day_offset += days_added
         current_date = start_date + timedelta(days=day_offset)
         duty_statuses.append({

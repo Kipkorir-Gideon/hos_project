@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-^klisz7ym-u0x7shex+j039&%n6v(mb!8cjc5*onwczdtfgh%u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
 # Application definition
@@ -133,11 +133,14 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://kipkorir-gideon.github.io/hos_frontend/",
+    "https://kipkorir-gideon.github.io/",
+    
 ]
 
 

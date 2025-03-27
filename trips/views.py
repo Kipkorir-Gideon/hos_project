@@ -313,5 +313,4 @@ class PlanTripView(APIView):
             "end_coords": dropoff_coords,
         }
         camel_case_response = convert_keys(response_data)
-        print("Final response data:", camel_case_response)
         return Response(camel_case_response, status=status.HTTP_201_CREATED)

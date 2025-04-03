@@ -54,7 +54,7 @@ def get_route(start, waypoints, end):
         raise Exception(f"Route API failed: {response.text}")
     route_data = response.json()
     route_coords = route_data['features'][0]['geometry']['coordinates']
-    return [[coord[1], coord[0]] for coord in route_coords]
+    return [[coord[1], coord[0]] for coord in route_coords]  # [lat, lon]
 
 def calculate_distance_along_route(route_coords, target_distance):
     """Interpolate a point along the route at the target distance (in miles)."""
@@ -62,7 +62,7 @@ def calculate_distance_along_route(route_coords, target_distance):
     for i in range(len(route_coords) - 1):
         point1 = route_coords[i]
         point2 = route_coords[i + 1]
-        R = 3958.8
+        R = 3958.8  # Earth's radius in miles
         lat1, lon1 = radians(point1[0]), radians(point1[1])
         lat2, lon2 = radians(point2[0]), radians(point2[1])
         dlat = lat2 - lat1
@@ -146,7 +146,7 @@ class PlanTripView(APIView):
         remaining_cycle = 70 - cycle_used - total_on_duty_time
 
         duty_statuses = []
-        start_date = datetime(2025, 3, 25).date()
+        start_date = datetime.today().date()
         current_date = start_date
         day_offset = 0
         current_location = current_location
@@ -167,7 +167,7 @@ class PlanTripView(APIView):
 
         # Pickup
         start_time = end_time
-        end_time, days_added = add_time(start_time, 1)
+        end_time, days_added = add_time(start_time, 1)  # 1 hour for pickup
         day_offset += days_added
         current_date = start_date + timedelta(days=day_offset)
         duty_statuses.append({
@@ -180,7 +180,7 @@ class PlanTripView(APIView):
 
         # Mandatory 30-minute break
         start_time = end_time
-        end_time, days_added = add_time(start_time, 0.5)
+        end_time, days_added = add_time(start_time, 0.5)  # 30 minutes
         day_offset += days_added
         current_date = start_date + timedelta(days=day_offset)
         duty_statuses.append({
@@ -263,7 +263,7 @@ class PlanTripView(APIView):
                 start_time = end_time
 
         # Dropoff
-        end_time, days_added = add_time(start_time, 1)
+        end_time, days_added = add_time(start_time, 1)  # 1 hour for dropoff
         day_offset += days_added
         current_date = start_date + timedelta(days=day_offset)
         duty_statuses.append({
@@ -313,4 +313,5 @@ class PlanTripView(APIView):
             "end_coords": dropoff_coords,
         }
         camel_case_response = convert_keys(response_data)
+        print("Final response data:", camel_case_response)
         return Response(camel_case_response, status=status.HTTP_201_CREATED)
